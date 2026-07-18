@@ -1,8 +1,8 @@
 # PrimeLife
 
-Project spec: `PrimeLife-MVP-PRD.md` at repo root. Every feature, story, and acceptance criterion in this project has a stable ID (`F1`, `F1-S1`, `F1-AC1`). Reference the PRD by ID rather than re-describing a feature.
+@SCOPE.md
 
-Non-negotiable constraints (`C1` to `C7` in the PRD) apply to everything built here: offline-first, no accounts, data thrift, WCAG AA, health-content safety framing, all local writes through the data-access seam, deterministic daily content. Do not build anything the PRD marks out of scope (F1 to F11 are in scope; Symptom Guide, full Exercise Library, cloud sync, and recipes are not).
+Full spec: `PrimeLife-MVP-PRD.md` at repo root. Every feature, story, and acceptance criterion has a stable ID (`F1`, `F1-S1`, `F1-AC1`). Reference the PRD by ID rather than re-describing a feature; read the specific section on demand when implementing that ID. SCOPE.md above is the binding summary; if the PRD and a request ever seem to conflict with SCOPE.md, SCOPE.md wins and the conflict gets flagged, not resolved silently.
 
 # gstack
 
