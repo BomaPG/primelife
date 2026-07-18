@@ -4,40 +4,37 @@ Tracks what exists, what's been verified, and what's next. Updated at the end of
 
 ## What's built
 
-**Step 1 — Infrastructure scaffold** (this step, no feature screens):
+**Step 2 — Onboarding and Settings** (this step):
 
-- Next.js App Router + TypeScript (strict) + Tailwind CSS, scaffolded via `create-next-app`.
-- Dexie/IndexedDB schema (`lib/db/schema.ts`) exactly per PRD Section 8: `Profile`, `CheckIn`, `WaterLog`, `MealLog`, `SleepLog`, `Walk`, version-1 stores declaration with `checkins`'s unique `&date` index and `mealLogs`'s compound `[date+mealType]` index.
-- Data-access module (`lib/db/dataAccess.ts`) — the single seam constraint `C6` requires. Every local read/write is an intent-named method (`addWaterGlass`, `removeWaterGlass`, `upsertMealLog`, `upsertSleepLog`, `logWalk`, `completeCheckIn`, `createProfile`/`updateProfile`/`markOnboarded`/`acceptDisclaimer`, `clearAllLocalData`, plus range reads for Insights). No other module touches Dexie directly — verified by grep, see "What's verified."
-- Derived-logic module (`lib/insights/derived.ts`) — pure functions per PRD Section 11: `getTodaysGoals`, `checkInStreak` (with the "preserved if today's check-in is missing but yesterday's isn't" grace rule), `hydrationStreak`, `movementStreak`, `getWeeklySummary`, `getTrends`. Takes rows in, returns computed values out; never imports Dexie.
-- Shared date-arithmetic module (`lib/dates.ts`) — `shiftDate`, `lastNDates`, `todayISO`, UTC-internal so calendar-day shifts don't get perturbed by DST. Used by both the data-access layer and the derived-logic layer instead of duplicating date math in each.
-- Content schema and typed loaders per PRD Section 9 (`lib/content/types.ts`, `lib/content/loaders.ts`) — `HealthTopic`, `EducationArticle`, `MealSet`, `Meal`, `DailyTip`, `Affirmation` types, plus synchronous loaders over `/content/{topics,articles,meals,tips,affirmations}`. Collections are empty arrays — content authoring is a separate step (PRD Section 16 placeholders).
-- Deterministic daily-content selection (`lib/daily/dailyContent.ts`) per PRD Section 10 / constraint `C7` — `getDayIndex`, `pickDailyTip`, `pickAffirmation`, `getTodaysContent`.
-- PWA shell per `F10`: `app/manifest.ts` (installable manifest, placeholder icons at `public/icons/icon-{192,512}.png`), `app/sw.ts` (Serwist service worker, precaches the app shell via `self.__SW_MANIFEST`, uses `@serwist/next`'s `defaultCache` runtime strategies — network-first for pages with a cache fallback).
-- `docs/PROJECT_STATE.md` (this file).
-
-No feature screens, meal/article content, or business logic beyond data-access and derived-logic exist yet — `app/page.tsx` is still the default `create-next-app` scaffold, on purpose.
+- Root gate (`app/page.tsx`) — renders nothing, reads the profile via `getProfile()`, and redirects to `/onboarding` or `/home` depending on whether onboarding is complete. Re-run on every load of `/`, which is what makes F1-AC5 hold.
+- Onboarding (`app/onboarding/page.tsx`, `F1`) — a single-screen form (not a multi-step wizard, to keep taps low for F1-AC1): optional name, water target (default 8), reminder opt-in, interested-topics checkboxes, and a required disclaimer-acknowledgement checkbox that gates the "Get started" button. Submits via `createProfile` → `acceptDisclaimer` → `markOnboarded`, then routes to `/home`.
+- Settings (`app/settings/page.tsx`, `F11`) — same preference fields prefilled from the stored profile, a "Save changes" button (`updateProfile`) with an inline `aria-live` confirmation, an explicit "data lives only on this device" statement (F11-AC3), and a "Clear my data" control that reveals an in-page confirm/cancel step before calling `clearAllLocalData()` and redirecting to `/` (F11-AC2). Split into an outer guard component and an inner `SettingsForm` that seeds its local edit state from a lazy `useState` initializer — avoids the `react-hooks/set-state-in-effect` anti-pattern that a naive "fetch then setState in an effect" version would hit.
+- Minimal Home placeholder (`app/(tabs)/home/page.tsx`, satisfies F1-AC1 only) — greets by name if given, links to Settings. The real F3 dashboard (tip, goals, quick logs, weekly summary, affirmation) is Step 3.
+- Shared UI: `components/PreferencesFields.tsx` (the name/water/reminders/topics fields, used by both onboarding and Settings — factored out after the first draft duplicated them), `lib/content/topicOptions.ts` (display labels for the five health topics, separate from the still-empty `HealthTopic` content collection), `lib/hooks/useRequireOnboardedProfile.ts` (the "load profile, bounce to `/onboarding` if incomplete" guard shared by Home and Settings).
+- `C4` baseline: `app/globals.css` sets the root font-size to 112.5% (16px → 18px) so every rem-based Tailwind text utility scales up; interactive elements use `min-h-11` (44px, comfortably exceeded once the root bump applies to `h`/`min-h` rem values too).
 
 ## What's verified
 
-- `npx tsc --noEmit` — zero errors (TypeScript strict mode).
-- `npx eslint .` — zero errors, zero warnings (generated `public/sw.js` excluded from linting — it's build output, not source).
-- `npm run test` (Vitest) — 45/45 tests pass across 4 files:
-  - `lib/dates.test.ts` — date-shift edge cases (month/year/leap-day boundaries).
-  - `lib/insights/derived.test.ts` — today's goals, all three streak rules (including the check-in grace-day case and the "breaks after a full day" case), weekly summary, trends.
-  - `lib/daily/dailyContent.test.ts` — day-index determinism, modulo wraparound, empty-list safety.
-  - `lib/db/dataAccess.test.ts` — Dexie integration tests against `fake-indexeddb`: profile CRUD, `completeCheckIn` upserting `sleepLogs.quality` without a duplicate row or clobbering a separately-set `hours` value, the `[date+mealType]` compound-index dedup in `upsertMealLog`, water glass floor-at-zero, multi-walk-per-day, range reads, and `clearAllLocalData` (F11-AC2).
-- `npm run build` (`next build --webpack`) — succeeds. Turbopack is Next 16's default but `@serwist/next`'s `InjectManifest` plugin requires webpack, so both `dev` and `build` scripts pin `--webpack` explicitly; `next.config.ts` disables Serwist for `NODE_ENV=development` so `next dev`'s lack of Turbopack support there doesn't matter.
-- Offline path (`F10-AC3`, constraint `C1`): built the app, served it with `next start`, loaded it once via gstack's `/browse` skill to let the service worker install (confirmed `navigator.serviceWorker.ready` reports `"activated"`), then killed the origin server entirely and reloaded — the page still rendered full content with zero console errors, served from the precache.
-- Architectural boundary (`C6`): grepped `lib/insights`, `lib/daily`, `lib/content` for `dexie`/`getDB`/`dataAccess` — no matches. The only references to `lib/db/schema` from outside `lib/db` are `import type`, which erases at compile time, so the pure layers never touch Dexie at runtime.
+- `npx tsc --noEmit` — zero errors.
+- `npx eslint .` — zero errors, zero warnings (the `react-hooks/set-state-in-effect` rule caught a real bug in an early draft of the Settings page — see "What's built").
+- `npm run test` (Vitest) — 45/45 tests pass, unchanged from Step 1 (this step didn't touch `lib/db`, `lib/insights`, `lib/daily`, or `lib/content` logic).
+- `npm run build` (`next build --webpack`) — succeeds; six static routes generated (`/`, `/home`, `/onboarding`, `/settings`, `/manifest.webmanifest`, `/_not-found`).
+- Full flow driven live via gstack's `/browse` skill against the production build:
+  - Fresh profile → `/` redirects to `/onboarding`; "Get started" starts disabled and enables only once the disclaimer checkbox is checked (F1-AC3).
+  - Filling name + two topics + disclaimer and submitting lands on `/home` with the name reflected ("Welcome back, Amaka") and zero console errors (F1-AC1, F1-AC2).
+  - Reloading `/` afterward goes straight to `/home`, not `/onboarding` again (F1-AC5).
+  - Direct navigation to `/home` or `/settings` before onboarding is complete bounces to `/onboarding` (guard behavior beyond the letter of the ACs, but necessary for F1-AC5 to actually hold against arbitrary entry points).
+  - Settings loads prefilled with the saved values; editing the water target and saving shows "Saved.", and the change survives a full page reload (F11-AC1).
+  - "Clear my data" reveals a confirm/cancel step; Cancel leaves data untouched; confirming wipes local data, redirects to `/onboarding`, and the form reflects true defaults (water target back to 8, no topics checked, disclaimer unchecked) — not just a redirect with stale state (F11-AC2).
+- Accessibility spot-check: computed `font-size` on the name input is 20.25px (`text-lg` × the 112.5% root bump), well above the 18px floor; computed `min-height` on the submit button is 49.5px, above the 44px floor. Mobile (375×812) screenshot of onboarding reviewed — legible, adequately spaced, disabled-state visually distinct.
 
-Not yet verified: PWA installability on an actual Android Chrome device (only confirmed manifest + service worker + offline-reload programmatically); first-load transfer size against a KB budget (PRD Section 16 leaves the budget itself as an open placeholder).
+Not yet verified: screen-reader pass (only computed CSS and DOM structure checked, not actual AT output); tablet/desktop screenshots were captured but not manually reviewed pixel-by-pixel.
 
 ## What's next
 
-**Step 2 — Onboarding and Settings (`F1`, `F11`):**
+**Step 3 — Home, Daily Check-In, quick logs (`F2`, `F3`, `F4`):**
 
-- First-run onboarding flow: name (optional), water target, reminder opt-in, interested topics, ending in `createProfile` + `markOnboarded`.
-- Disclaimer screen gating health content, wired to `acceptDisclaimer` (`F1-AC3`, constraint `C5`).
-- Settings screen: edit the same preferences post-onboarding (`updateProfile`), plus the "clear my data" confirm-and-wipe flow (`clearAllLocalData`, `F11-AC2`) that returns the app to first-run state.
-- First real UI screens — this is where `C4` (18px+ body text, 44px+ tap targets, high contrast) starts actually applying to markup, not just being a stated constraint.
+- Replace the Home placeholder with the real dashboard: daily tip, today's goals (hydration/meals/sleep/movement), quick-log shortcuts, weekly summary, daily affirmation — wired to `lib/insights/derived.ts` and `lib/daily/dailyContent.ts`, which already exist and are tested.
+- Daily Check-In modal (three questions), auto-launched once per local day from Home, writing through `completeCheckIn`.
+- Quick-log controls for water, meals, sleep on Home (and eventually Track) via `addWaterGlass`/`removeWaterGlass`, `upsertMealLog`, `upsertSleepLog`.
+- This is also where `content/tips/index.ts` and `content/affirmations/index.ts` need at least placeholder entries — `getTodaysContent` degrades to `undefined` on empty lists today, which Home will need to handle or content will need to gain a first real entry.

@@ -19,6 +19,12 @@
   }
 }
 
+/* C4: 18px+ body text. Bumping the root size scales every rem-based
+   Tailwind utility proportionally instead of overriding each one. */
+html {
+  font-size: 112.5%; /* 16px * 1.125 = 18px */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
