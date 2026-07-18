@@ -1,22 +1,172 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { CheckInModal } from "@/components/CheckInModal";
+import { MealsQuickLog } from "@/components/quickLogs/MealsQuickLog";
+import { SleepQuickLog } from "@/components/quickLogs/SleepQuickLog";
+import { WaterQuickLog } from "@/components/quickLogs/WaterQuickLog";
+import { isDismissedToday, setDismissedDate } from "@/lib/checkInDismissal";
+import { getTodaysContent } from "@/lib/daily/dailyContent";
+import {
+  addWaterGlass,
+  getCheckIn,
+  getCheckInsInRange,
+  getMealLogs,
+  getMealLogsInRange,
+  getSleepLog,
+  getSleepLogsInRange,
+  getWalks,
+  getWalksInRange,
+  getWaterLog,
+  getWaterLogsInRange,
+  lastNDates,
+  removeWaterGlass,
+  todayISO,
+  upsertMealLog,
+  upsertSleepLog,
+} from "@/lib/db/dataAccess";
+import type {
+  CheckIn,
+  MealLog,
+  MealType,
+  SleepLog,
+  SleepQuality,
+  Walk,
+  WaterLog,
+} from "@/lib/db/schema";
 import { useRequireOnboardedProfile } from "@/lib/hooks/useRequireOnboardedProfile";
+import { getTodaysGoals, getWeeklySummary, type WeeklySummary } from "@/lib/insights/derived";
+
+interface TodayState {
+  waterLog?: WaterLog;
+  mealLogs: MealLog[];
+  sleepLog?: SleepLog;
+  walks: Walk[];
+  checkIn?: CheckIn;
+}
 
 /**
- * Minimal Home placeholder. Satisfies F1-AC1 ("reaches a usable Home") for
- * this step — the full dashboard (tip, goals, quick logs, weekly summary,
- * affirmation) is F3, built in Step 3.
+ * F3: the daily loop hub. Owns all of today's + this week's data and the
+ * handlers that write through the data-access layer, then reload —
+ * quick-log subcomponents are presentational only (F3-AC3: writes reflect
+ * immediately, no page reload).
  */
 export default function HomePage() {
   const profile = useRequireOnboardedProfile();
+  const [today] = useState(() => todayISO());
+  const [todayState, setTodayState] = useState<TodayState | null>(null);
+  const [weekSummary, setWeekSummary] = useState<WeeklySummary | null>(null);
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false);
 
-  if (!profile) {
+  const reload = useCallback(async () => {
+    const [waterLog, mealLogs, sleepLog, walks, checkIn] = await Promise.all([
+      getWaterLog(today),
+      getMealLogs(today),
+      getSleepLog(today),
+      getWalks(today),
+      getCheckIn(today),
+    ]);
+    setTodayState({ waterLog, mealLogs, sleepLog, walks, checkIn });
+
+    const weekDates = lastNDates(today, 7);
+    const [weekCheckins, weekWater, weekMeals, weekSleep, weekWalks] = await Promise.all([
+      getCheckInsInRange(weekDates),
+      getWaterLogsInRange(weekDates),
+      getMealLogsInRange(weekDates),
+      getSleepLogsInRange(weekDates),
+      getWalksInRange(weekDates),
+    ]);
+    setWeekSummary(
+      getWeeklySummary({
+        today,
+        waterLogs: weekWater,
+        sleepLogs: weekSleep,
+        walks: weekWalks,
+        mealLogs: weekMeals,
+        checkins: weekCheckins,
+      }),
+    );
+
+    // F2-AC1/AC3: auto-launch once per day, unless already checked in or
+    // already dismissed today (isDismissedToday persists across reloads).
+    if (!checkIn && !isDismissedToday(today)) {
+      setCheckInModalOpen(true);
+    }
+  }, [today]);
+
+  useEffect(() => {
+    if (!profile) return;
+    // reload()'s setState calls all happen after `await Promise.all(...)`
+    // resolves (a later microtask), never synchronously during this
+    // effect's own execution, so there's no cascading-render risk the
+    // set-state-in-effect rule exists to catch. The rule's static check
+    // can't see past the extra indirection through the named `reload`
+    // callback (unlike an inline `.then()`, which it does recognize), and
+    // duplicating reload's fetch+setState body inline here just to satisfy
+    // that pattern would leave two copies to keep in sync with the write
+    // handlers below that also call `reload()`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    reload();
+  }, [profile, reload]);
+
+  if (!profile || !todayState || !weekSummary) {
     return null;
   }
 
+  const goals = getTodaysGoals({
+    waterTargetGlasses: profile.waterTargetGlasses,
+    todayWaterLog: todayState.waterLog,
+    todayMealLogs: todayState.mealLogs,
+    todaySleepLog: todayState.sleepLog,
+    todayWalks: todayState.walks,
+  });
+
+  const { tip, affirmation } = getTodaysContent(today);
+
+  async function handleAddWater() {
+    await addWaterGlass(today);
+    await reload();
+  }
+
+  async function handleRemoveWater() {
+    await removeWaterGlass(today);
+    await reload();
+  }
+
+  async function handleToggleMeal(mealType: MealType, done: boolean) {
+    await upsertMealLog({ date: today, mealType, done });
+    await reload();
+  }
+
+  async function handleMealNoteChange(mealType: MealType, note: string) {
+    const existing = todayState?.mealLogs.find((m) => m.mealType === mealType);
+    await upsertMealLog({ date: today, mealType, done: existing?.done ?? false, note });
+    await reload();
+  }
+
+  async function handleSleepHoursChange(hours: number) {
+    await upsertSleepLog({ date: today, hours });
+    await reload();
+  }
+
+  async function handleSleepQualityChange(quality: SleepQuality) {
+    await upsertSleepLog({ date: today, quality });
+    await reload();
+  }
+
+  async function handleCheckInComplete() {
+    setCheckInModalOpen(false);
+    await reload();
+  }
+
+  function handleCheckInDismiss() {
+    setDismissedDate(today);
+    setCheckInModalOpen(false);
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-xl flex-col gap-10 px-6 py-12">
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-3xl font-semibold">
           {profile.name ? `Welcome back, ${profile.name}` : "Welcome back"}
@@ -25,10 +175,85 @@ export default function HomePage() {
           Settings
         </Link>
       </div>
-      <p className="text-lg text-black/70 dark:text-white/70">
-        Your daily check-in, goals, and progress are coming here next. For now, your
-        preferences are saved and ready to edit anytime in Settings.
-      </p>
+
+      {tip && (
+        <div className="rounded-lg border border-black/20 p-4 text-lg dark:border-white/30">
+          <p className="font-medium">Today&apos;s tip</p>
+          <p className="text-black/70 dark:text-white/70">{tip.text}</p>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {todayState.checkIn ? (
+          <p className="text-lg">Checked in today ✓</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCheckInModalOpen(true)}
+            className="min-h-11 self-start rounded-full bg-foreground px-6 py-3 text-lg font-medium text-background"
+          >
+            Daily check-in
+          </button>
+        )}
+      </div>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-2xl font-semibold">Today&apos;s goals</h2>
+        <ul className="flex flex-col gap-2 text-lg">
+          <li>
+            Hydration: {goals.hydration.glasses} / {goals.hydration.target} glasses
+            {goals.hydration.met ? " — goal reached" : ""}
+          </li>
+          <li>
+            Meals: {goals.meals.loggedCount} / {goals.meals.total} logged
+          </li>
+          <li>Sleep: {goals.sleep.met ? "Logged" : "Not yet logged"}</li>
+          <li>Movement: {goals.movement.met ? "Walk logged today" : "No walk yet"}</li>
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-6">
+        <h2 className="text-2xl font-semibold">Quick log</h2>
+        <WaterQuickLog
+          glasses={goals.hydration.glasses}
+          target={goals.hydration.target}
+          onAdd={handleAddWater}
+          onRemove={handleRemoveWater}
+        />
+        <MealsQuickLog
+          mealLogs={todayState.mealLogs}
+          onToggle={handleToggleMeal}
+          onNoteChange={handleMealNoteChange}
+        />
+        <SleepQuickLog
+          sleepLog={todayState.sleepLog}
+          onChangeHours={handleSleepHoursChange}
+          onChangeQuality={handleSleepQualityChange}
+        />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-2xl font-semibold">This week</h2>
+        <ul className="flex flex-col gap-2 text-lg">
+          <li>Average water: {weekSummary.avgWaterGlasses.toFixed(1)} glasses/day</li>
+          <li>Nights with sleep logged: {weekSummary.nightsWithSleepLog}</li>
+          <li>
+            Walks: {weekSummary.totalWalks} ({weekSummary.totalWalkMinutes} min)
+          </li>
+          <li>Meals logged: {weekSummary.mealsLoggedCount}</li>
+          <li>Check-ins: {weekSummary.checkInsCompleted}</li>
+        </ul>
+      </section>
+
+      {affirmation && (
+        <div className="rounded-lg border border-black/20 p-4 text-lg italic dark:border-white/30">
+          {affirmation.text}
+        </div>
+      )}
+
+      {checkInModalOpen && (
+        <CheckInModal date={today} onComplete={handleCheckInComplete} onDismiss={handleCheckInDismiss} />
+      )}
     </main>
   );
 }
