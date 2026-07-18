@@ -190,7 +190,7 @@ describe("getWeeklySummary", () => {
       ],
       sleepLogs: [{ date: TODAY, hours: 7, updatedAt: 0 }],
       walks: [
-        { date: "2026-07-16", durationMins: 20, createdAt: 0 },
+        { date: "2026-07-16", durationMins: 20, distanceKm: 1.5, createdAt: 0 },
         { date: TODAY, durationMins: 10, createdAt: 0 },
       ],
       mealLogs: [
@@ -208,6 +208,7 @@ describe("getWeeklySummary", () => {
     expect(summary.nightsWithSleepLog).toBe(1);
     expect(summary.totalWalkMinutes).toBe(30);
     expect(summary.totalWalks).toBe(2);
+    expect(summary.totalWalkDistanceKm).toBeCloseTo(1.5, 5); // second walk has no distance
     expect(summary.mealsLoggedCount).toBe(1);
     expect(summary.checkInsCompleted).toBe(3);
     expect(summary.mostCommonFeeling).toBe("great");

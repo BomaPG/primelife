@@ -120,6 +120,7 @@ export interface WeeklySummary {
   nightsWithSleepLog: number;
   totalWalkMinutes: number;
   totalWalks: number;
+  totalWalkDistanceKm: number;
   mealsLoggedCount: number;
   checkInsCompleted: number;
   mostCommonFeeling: Feeling | undefined;
@@ -163,6 +164,7 @@ export function getWeeklySummary(input: {
     nightsWithSleepLog: weekSleep.filter((s) => s.hours != null || s.quality != null).length,
     totalWalkMinutes: weekWalks.reduce((sum, w) => sum + w.durationMins, 0),
     totalWalks: weekWalks.length,
+    totalWalkDistanceKm: weekWalks.reduce((sum, w) => sum + (w.distanceKm ?? 0), 0),
     mealsLoggedCount: weekMeals.filter((m) => m.done).length,
     checkInsCompleted: weekCheckins.length,
     mostCommonFeeling,
