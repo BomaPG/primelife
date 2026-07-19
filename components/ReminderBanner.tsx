@@ -20,7 +20,7 @@ export function ReminderBanner({ message, actionLabel, href, onAction }: Reminde
     <div className="flex flex-col gap-3 rounded-lg border border-amber-600/50 bg-amber-50 p-4 text-lg dark:border-amber-400/40 dark:bg-amber-950/40">
       <p>{message}</p>
       {href ? (
-        <a href={href} className="self-start text-lg font-medium underline">
+        <a href={href} className="flex min-h-11 items-center self-start text-lg font-medium underline">
           {actionLabel}
         </a>
       ) : (
