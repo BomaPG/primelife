@@ -205,7 +205,10 @@ export default function HomePage() {
             {goals.hydration.met ? " — goal reached" : ""}
           </li>
           <li>
-            Meals: {goals.meals.loggedCount} / {goals.meals.total} logged
+            Meals: {goals.meals.loggedCount} / {goals.meals.total} logged{" "}
+            <Link href="/nourish" className="underline">
+              See meal ideas
+            </Link>
           </li>
           <li>Sleep: {goals.sleep.met ? "Logged" : "Not yet logged"}</li>
           <li>
