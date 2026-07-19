@@ -69,18 +69,21 @@ export function PreferencesFields({ value, onChange }: PreferencesFieldsProps) {
         </div>
       </div>
 
-      <div className="flex items-start gap-3">
+      {/* C4: a bare h-6 w-6 checkbox is 27px (below the 44px tap-target
+          floor) and the raw <label htmlFor> text is often shorter than 44px
+          tall too, so neither is independently a large-enough target — this
+          wraps both in one <label>, making the whole row (including the gap
+          between the box and the text) a single ≥44px clickable target. */}
+      <label htmlFor="pref-reminders" className="flex min-h-11 cursor-pointer items-center gap-3 text-lg">
         <input
           id="pref-reminders"
           type="checkbox"
           checked={value.remindersEnabled}
           onChange={(e) => onChange({ remindersEnabled: e.target.checked })}
-          className="mt-1 h-6 w-6 shrink-0"
+          className="h-6 w-6 shrink-0"
         />
-        <label htmlFor="pref-reminders" className="text-lg">
-          Send me gentle reminders to check in and drink water
-        </label>
-      </div>
+        Send me gentle reminders to check in and drink water
+      </label>
 
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-lg font-medium">
@@ -88,18 +91,20 @@ export function PreferencesFields({ value, onChange }: PreferencesFieldsProps) {
           <span className="font-normal text-black/60 dark:text-white/60">(optional)</span>
         </legend>
         {HEALTH_TOPIC_OPTIONS.map((topic) => (
-          <div key={topic.id} className="flex items-start gap-3">
+          <label
+            key={topic.id}
+            htmlFor={`pref-topic-${topic.id}`}
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-lg"
+          >
             <input
               id={`pref-topic-${topic.id}`}
               type="checkbox"
               checked={value.interestedTopics.includes(topic.id)}
               onChange={() => toggleTopic(topic.id)}
-              className="mt-1 h-6 w-6 shrink-0"
+              className="h-6 w-6 shrink-0"
             />
-            <label htmlFor={`pref-topic-${topic.id}`} className="text-lg">
-              {topic.label}
-            </label>
-          </div>
+            {topic.label}
+          </label>
         ))}
       </fieldset>
     </div>

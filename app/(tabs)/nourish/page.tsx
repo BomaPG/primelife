@@ -123,12 +123,18 @@ export default function NourishPage() {
             {(relatedLabel || article) && (
               <div className="flex flex-col gap-1">
                 {relatedLabel && (
-                  <a href={`#${relatedTopicId}`} className="text-lg font-medium underline">
+                  <a
+                    href={`#${relatedTopicId}`}
+                    className="flex min-h-11 items-center text-lg font-medium underline"
+                  >
                     See also: {relatedLabel} meals
                   </a>
                 )}
                 {article && (
-                  <Link href={`/learn#${article.slug}`} className="text-lg font-medium underline">
+                  <Link
+                    href={`/learn#${article.slug}`}
+                    className="flex min-h-11 items-center text-lg font-medium underline"
+                  >
                     Read: {article.title}
                   </Link>
                 )}

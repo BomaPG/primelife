@@ -303,6 +303,14 @@ export default function HomePage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-2xl font-semibold">Today&apos;s goals</h2>
+        {/* C4: "See meal ideas" and "Log a walk" below are deliberately left
+            without min-h-11, unlike this step's other link fixes — both sit
+            inline at the end of a sentence sharing a line with non-link text
+            ("Meals: 0/3 logged See meal ideas"), which is WCAG's own "inline
+            target" exception (a target constrained by the line-height of
+            surrounding non-target text). The other links this step touched
+            are each the sole content of their own row, with no such
+            constraint, so they got sized up instead. */}
         <ul className="flex flex-col gap-2 text-lg">
           <li>
             Hydration: {goals.hydration.glasses} / {goals.hydration.target} glasses
@@ -356,7 +364,7 @@ export default function HomePage() {
           <li>Meals logged: {weekSummary.mealsLoggedCount}</li>
           <li>Check-ins: {weekSummary.checkInsCompleted}</li>
         </ul>
-        <Link href="/track" className="self-start text-lg font-medium underline">
+        <Link href="/track" className="flex min-h-11 items-center self-start text-lg font-medium underline">
           See streaks and trends
         </Link>
       </section>

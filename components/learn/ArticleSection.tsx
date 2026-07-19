@@ -48,7 +48,10 @@ export function ArticleSection({ article }: ArticleSectionProps) {
       <p className="text-lg text-black/70 dark:text-white/70">{article.disclaimer}</p>
 
       {mealSet && (
-        <Link href={`/nourish#${article.topicId}`} className="self-start text-lg font-medium underline">
+        <Link
+          href={`/nourish#${article.topicId}`}
+          className="flex min-h-11 items-center self-start text-lg font-medium underline"
+        >
           See meal ideas: {mealSet.title}
         </Link>
       )}

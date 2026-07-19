@@ -69,19 +69,24 @@ export default function OnboardingPage() {
             advice and does not diagnose or treat any condition. If you feel very unwell, go to
             the nearest clinic or hospital.
           </p>
-          <div className="flex items-start gap-3">
+          {/* C4: see the matching comment in PreferencesFields.tsx — a bare
+              checkbox plus its label text are each individually under the
+              44px tap-target floor, so this wraps both in one <label> to
+              make the whole row a single ≥44px clickable target. */}
+          <label
+            htmlFor="disclaimer-accept"
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-lg"
+          >
             <input
               id="disclaimer-accept"
               type="checkbox"
               checked={disclaimerAccepted}
               onChange={(e) => setDisclaimerAccepted(e.target.checked)}
-              className="mt-1 h-6 w-6 shrink-0"
+              className="h-6 w-6 shrink-0"
               required
             />
-            <label htmlFor="disclaimer-accept" className="text-lg">
-              I understand this is general guidance, not medical advice.
-            </label>
-          </div>
+            I understand this is general guidance, not medical advice.
+          </label>
         </div>
 
         <button

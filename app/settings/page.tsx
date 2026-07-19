@@ -94,7 +94,11 @@ function SettingsForm({ profile }: { profile: Profile }) {
           <button
             type="button"
             onClick={() => setConfirmingClear(true)}
-            className="min-h-11 self-start rounded-full border border-red-600 px-6 py-3 text-lg font-medium text-red-600"
+            // C4: red-600 text on this app's near-black dark background
+            // computes to 4.15:1, just under the 4.5:1 AA floor for normal
+            // text — red-500 is lighter (higher luminance), which clears it
+            // in dark mode; red-600 already passes (~4.83:1) in light mode.
+            className="min-h-11 self-start rounded-full border border-red-600 px-6 py-3 text-lg font-medium text-red-600 dark:border-red-500 dark:text-red-500"
           >
             Clear my data
           </button>
