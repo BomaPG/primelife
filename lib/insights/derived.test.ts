@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { CheckIn, MealLog, SleepLog, Walk, WaterLog } from "@/lib/db/schema";
 import {
   checkInStreak,
+  getReminders,
   getTodaysGoals,
   getTrends,
   getWeeklySummary,
+  HYDRATION_REMINDER_HOUR,
   hydrationStreak,
   movementStreak,
 } from "@/lib/insights/derived";
@@ -244,5 +246,51 @@ describe("getTrends", () => {
     expect(trends.waterGlassesPerDay[6]).toBe(5);
     expect(trends.walkMinutesPerDay[6]).toBe(12);
     expect(trends.sleepQualityDistribution).toEqual({ good: 1, okay: 0, poor: 1 });
+  });
+});
+
+describe("getReminders", () => {
+  it("nudges check-in any time of day when not yet checked in", () => {
+    expect(
+      getReminders({ hasCheckedInToday: false, hydrationMet: true, nowHour: 6 }).showCheckInReminder,
+    ).toBe(true);
+    expect(
+      getReminders({ hasCheckedInToday: false, hydrationMet: true, nowHour: 23 }).showCheckInReminder,
+    ).toBe(true);
+  });
+
+  it("does not nudge check-in once it's done", () => {
+    expect(
+      getReminders({ hasCheckedInToday: true, hydrationMet: false, nowHour: 20 }).showCheckInReminder,
+    ).toBe(false);
+  });
+
+  it("does not nudge hydration before the reminder hour, even if unmet", () => {
+    expect(
+      getReminders({
+        hasCheckedInToday: true,
+        hydrationMet: false,
+        nowHour: HYDRATION_REMINDER_HOUR - 1,
+      }).showHydrationReminder,
+    ).toBe(false);
+  });
+
+  it("nudges hydration from the reminder hour onward when unmet", () => {
+    expect(
+      getReminders({
+        hasCheckedInToday: true,
+        hydrationMet: false,
+        nowHour: HYDRATION_REMINDER_HOUR,
+      }).showHydrationReminder,
+    ).toBe(true);
+    expect(
+      getReminders({ hasCheckedInToday: true, hydrationMet: false, nowHour: 23 }).showHydrationReminder,
+    ).toBe(true);
+  });
+
+  it("never nudges hydration once the goal is met, regardless of hour", () => {
+    expect(
+      getReminders({ hasCheckedInToday: true, hydrationMet: true, nowHour: 23 }).showHydrationReminder,
+    ).toBe(false);
   });
 });
