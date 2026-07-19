@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MEAL_TYPE_OPTIONS } from "@/lib/content/mealTypeOptions";
 import type { MealLog, MealType } from "@/lib/db/schema";
 
 interface MealsQuickLogProps {
@@ -8,12 +9,6 @@ interface MealsQuickLogProps {
   onToggle: (mealType: MealType, done: boolean) => void;
   onNoteChange: (mealType: MealType, note: string) => void;
 }
-
-const MEAL_TYPES: { type: MealType; label: string }[] = [
-  { type: "breakfast", label: "Breakfast" },
-  { type: "lunch", label: "Lunch" },
-  { type: "dinner", label: "Dinner" },
-];
 
 /** F4-AC2: mark breakfast/lunch/dinner done, each with an optional note. */
 export function MealsQuickLog({ mealLogs, onToggle, onNoteChange }: MealsQuickLogProps) {
@@ -23,7 +18,7 @@ export function MealsQuickLog({ mealLogs, onToggle, onNoteChange }: MealsQuickLo
   return (
     <div className="flex flex-col gap-4">
       <p className="text-lg font-medium">Meals</p>
-      {MEAL_TYPES.map(({ type, label }) => {
+      {MEAL_TYPE_OPTIONS.map(({ type, label }) => {
         const log = logByType.get(type);
         const done = log?.done ?? false;
         const noteOpen = expandedNote === type;
