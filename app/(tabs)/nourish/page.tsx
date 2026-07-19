@@ -10,6 +10,7 @@ import type { HealthTopicId } from "@/lib/content/types";
 import { getMealLogs, todayISO, upsertMealLog } from "@/lib/db/dataAccess";
 import type { MealLog, MealType } from "@/lib/db/schema";
 import { useRequireOnboardedProfile } from "@/lib/hooks/useRequireOnboardedProfile";
+import { useScrollToHash } from "@/lib/hooks/useScrollToHash";
 
 // F7 doesn't have its own cross-link field (that's HealthTopic.relatedTopicIds,
 // PRD Section 9 — a separate content collection this step doesn't touch), so
@@ -41,6 +42,9 @@ export default function NourishPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
   }, [profile, reload]);
+
+  // Learn's "See meal ideas" link (F8-AC3) points here as `/nourish#topicId`.
+  useScrollToHash(!!profile && !!mealLogs);
 
   if (!profile || !mealLogs) {
     return null;
@@ -124,7 +128,7 @@ export default function NourishPage() {
                   </a>
                 )}
                 {article && (
-                  <Link href="/learn" className="text-lg font-medium underline">
+                  <Link href={`/learn#${article.slug}`} className="text-lg font-medium underline">
                     Read: {article.title}
                   </Link>
                 )}

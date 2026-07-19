@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { lastNDates, shiftDate, todayISO } from "@/lib/dates";
+import { lastNDates, parseISODateUTC, shiftDate, todayISO } from "@/lib/dates";
+
+describe("parseISODateUTC", () => {
+  it("parses to UTC midnight of the given calendar date", () => {
+    const dt = parseISODateUTC("2026-07-19");
+    expect(dt.getUTCFullYear()).toBe(2026);
+    expect(dt.getUTCMonth()).toBe(6); // 0-indexed
+    expect(dt.getUTCDate()).toBe(19);
+    expect(dt.getUTCHours()).toBe(0);
+  });
+});
 
 describe("shiftDate", () => {
   it("shifts forward across a month boundary", () => {
