@@ -135,6 +135,26 @@ describe("Meals (F4-AC2, compound [date+mealType] index)", () => {
     const logs = await dataAccess.getMealLogs(TODAY);
     expect(logs).toHaveLength(3);
   });
+
+  it("preserves note and recommendedMealId across an upsert that omits them (F7-AC6)", async () => {
+    await dataAccess.upsertMealLog({
+      date: TODAY,
+      mealType: "breakfast",
+      done: false,
+      note: "with extra pepper",
+      recommendedMealId: "bp-b1",
+    });
+
+    // Toggling done from Home's quick-log doesn't pass note/recommendedMealId —
+    // it must not silently clear a Nourish attachment or an existing note.
+    await dataAccess.upsertMealLog({ date: TODAY, mealType: "breakfast", done: true });
+
+    const logs = await dataAccess.getMealLogs(TODAY);
+    expect(logs).toHaveLength(1);
+    expect(logs[0].done).toBe(true);
+    expect(logs[0].note).toBe("with extra pepper");
+    expect(logs[0].recommendedMealId).toBe("bp-b1");
+  });
 });
 
 describe("Sleep (F4-AC3)", () => {

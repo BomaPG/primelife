@@ -174,8 +174,8 @@ export async function upsertMealLog(input: {
       date: input.date,
       mealType: input.mealType,
       done: input.done,
-      note: input.note,
-      recommendedMealId: input.recommendedMealId,
+      note: input.note ?? existing?.note,
+      recommendedMealId: input.recommendedMealId ?? existing?.recommendedMealId,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     const id = await db.mealLogs.put(mealLog);
