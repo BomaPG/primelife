@@ -211,3 +211,31 @@ export function getTrends(input: {
     sleepQualityDistribution,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Reminders (F9-AC1) — no Section 11 spec exists for this yet, so the rule
+// below is this step's own: check-in is nudged any time it's still undone
+// today (the existing auto-launch/dismiss flow already governs the modal
+// itself; this only adds a passive banner), hydration is nudged only once
+// it's "later in the day" per F9-AC1's wording, not from first thing in the
+// morning when falling short of a whole day's target is expected.
+// ---------------------------------------------------------------------------
+
+/** Local hour (0-23) from which an unmet hydration goal is nudged. */
+export const HYDRATION_REMINDER_HOUR = 15;
+
+export interface ReminderState {
+  showCheckInReminder: boolean;
+  showHydrationReminder: boolean;
+}
+
+export function getReminders(input: {
+  hasCheckedInToday: boolean;
+  hydrationMet: boolean;
+  nowHour: number; // 0-23, local time — passed in so this stays a pure, unit-testable function
+}): ReminderState {
+  return {
+    showCheckInReminder: !input.hasCheckedInToday,
+    showHydrationReminder: !input.hydrationMet && input.nowHour >= HYDRATION_REMINDER_HOUR,
+  };
+}
