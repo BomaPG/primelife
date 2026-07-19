@@ -67,3 +67,7 @@ Not needed until PrimeLife is live with real traffic.
 `/office-hours` -> `/plan-ceo-review` -> `/plan-eng-review` -> `/plan-design-review` -> implement -> `/review` -> `/qa` -> `/ship` -> `/land-and-deploy`
 
 Not required every time: `/design-consultation` runs once, early, ahead of the first implementation prompt. `/codex` and `/cso` run when available or before a public deploy, not on every branch. `/canary` and `/benchmark` start after launch.
+
+## Git workflow
+
+At the end of every step, once /review and /qa (or their available equivalents) pass, merge your working branch into the default branch yourself, then push. Don't leave work sitting on an unmerged branch between steps. Confirm the merge explicitly in your step output.
