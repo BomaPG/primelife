@@ -249,6 +249,9 @@ export default function HomePage() {
           <li>Meals logged: {weekSummary.mealsLoggedCount}</li>
           <li>Check-ins: {weekSummary.checkInsCompleted}</li>
         </ul>
+        <Link href="/track" className="self-start text-lg font-medium underline">
+          See streaks and trends
+        </Link>
       </section>
 
       {affirmation && (
