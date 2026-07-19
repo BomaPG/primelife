@@ -18,10 +18,19 @@ export function todayISO(): string {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
+/**
+ * Parses an ISO calendar date string as a `Date` at UTC midnight, so
+ * display formatting (e.g. via `Intl.DateTimeFormat` with `timeZone:
+ * "UTC"`) never drifts a day off in a host timezone behind or ahead of UTC.
+ */
+export function parseISODateUTC(date: string): Date {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
 /** Shifts an ISO calendar date string by `deltaDays` (may be negative). */
 export function shiftDate(date: string, deltaDays: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dt = parseISODateUTC(date);
   dt.setUTCDate(dt.getUTCDate() + deltaDays);
   return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
 }

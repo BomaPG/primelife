@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { WeekBarChart } from "@/components/insights/WeekBarChart";
 import { MEAL_TYPE_OPTIONS } from "@/lib/content/mealTypeOptions";
+import { parseISODateUTC } from "@/lib/dates";
 import {
   getCheckInsInRange,
   getMealLogsInRange,
@@ -41,14 +42,12 @@ interface RangeData {
 }
 
 function formatDayLabel(date: string, today: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
   const label = new Intl.DateTimeFormat(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
     timeZone: "UTC",
-  }).format(dt);
+  }).format(parseISODateUTC(date));
   return date === today ? `${label} (Today)` : label;
 }
 
