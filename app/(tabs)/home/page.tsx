@@ -208,7 +208,12 @@ export default function HomePage() {
             Meals: {goals.meals.loggedCount} / {goals.meals.total} logged
           </li>
           <li>Sleep: {goals.sleep.met ? "Logged" : "Not yet logged"}</li>
-          <li>Movement: {goals.movement.met ? "Walk logged today" : "No walk yet"}</li>
+          <li>
+            Movement: {goals.movement.met ? "Walk logged today" : "No walk yet"}{" "}
+            <Link href="/move" className="underline">
+              Log a walk
+            </Link>
+          </li>
         </ul>
       </section>
 
@@ -238,7 +243,8 @@ export default function HomePage() {
           <li>Average water: {weekSummary.avgWaterGlasses.toFixed(1)} glasses/day</li>
           <li>Nights with sleep logged: {weekSummary.nightsWithSleepLog}</li>
           <li>
-            Walks: {weekSummary.totalWalks} ({weekSummary.totalWalkMinutes} min)
+            Walks: {weekSummary.totalWalks} ({weekSummary.totalWalkMinutes} min,{" "}
+            {weekSummary.totalWalkDistanceKm.toFixed(1)} km)
           </li>
           <li>Meals logged: {weekSummary.mealsLoggedCount}</li>
           <li>Check-ins: {weekSummary.checkInsCompleted}</li>
